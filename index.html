@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang=en>
+  <head>
+    <meta charset="utf-8">
+    <title>Norris</title>
+    <style>
+      p {
+        min-height: 1.5em;
+        border: 1px #888 solid;
+      }
+      button {
+        color: #888;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Protected Random Quote</h1>
+    <p id="quote"></p>
+    <button id="getQuote">
+      Get random quote
+    </button>
+    <button id="getToken">
+      Get token
+    </button>
+
+    <script>
+    ;(function () {
+      "use strict"
+    
+      const quote = document.getElementById("quote")
+      const getToken = document.getElementById("getToken")
+      const getQuote = document.getElementById("getQuote")
+
+      let token
+
+      const showError = (xhr) => {
+            // request error
+        const message   = xhr.status
+                        ? "(Time to get a new token)"
+                        : "(Server may be unavailable)"
+        quote.innerHTML = 'HTTP error: ' 
+                        + xhr.status + ' '
+                        + xhr.statusText + ' '
+                        + message
+      }
+
+
+      getToken.onclick = (event) => {
+        const xhr = new XMLHttpRequest()
+        const url = 'http://localhost:3001/sessions/create'
+
+        const stateChange = () => {
+          if (xhr.readyState !== 4) {
+            return
+          }
+
+          if (xhr.status === 201) { // Created
+            const string = xhr.responseText
+            // {"id_token":"eyJ...0p5Y","access_token":"eyJ...ygw"}
+
+            try {
+              const array = JSON.parse(string)
+              token = array.access_token
+              console.log("token:", token)
+
+            } catch(error) {
+              console.log(
+                "Response text was not JSON string"
+              , string
+              )
+            }
+
+          } else {
+            showError(xhr)
+          }
+        }
+
+        var params = 'username=gonto&password=gonto'
+        xhr.open('POST', url, true)
+
+        //Send the proper header information along with the request
+        xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
+
+        xhr.onreadystatechange = stateChange
+
+        xhr.send(params)
+      } 
+
+
+      getQuote.onclick = (event) => {
+        const xhr = new XMLHttpRequest()
+        const url = 'http://localhost:3001/api/protected/random-quote'
+
+        const stateChange = () => {
+          if (xhr.readyState !== 4) return
+
+          if (xhr.status === 200) {
+            quote.innerHTML = xhr.responseText
+          } else {
+            showError(xhr)
+          }
+        }
+
+        xhr.open('GET', url)
+        const header = 'Bearer ' + token
+        console.log("header:", header)
+        xhr.setRequestHeader('Authorization', header)
+
+        xhr.onreadystatechange = stateChange
+
+        xhr.send()
+      }  
+    })()
+    </script>
+  </body>
+</html>
